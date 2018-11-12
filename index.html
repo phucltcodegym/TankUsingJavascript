@@ -1,0 +1,142 @@
+<html>
+<head>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <style>
+        canvas {
+            border: 1px solid #d3d3d3;
+            background-color: #d3eece;
+        }
+    </style>
+</head>
+<body  onload="startGame()">
+    <canvas id="canvas" height="480px" width="800px"></canvas>
+    <p>Game Tank Simple</p>
+    <button onclick="resetGame()">Restart</button>
+</body>
+<script src="js/bullet.js"></script>
+<script src="js/enemy.js"></script>
+<script src="js/play.js"></script>
+<script src="js/myrect.js"></script>
+<script>
+    var enemy = [];
+    var myPlay = null;
+    var bullets = [];
+
+    function resetGame() {       
+        location.reload();
+    }
+   
+    function startGame() {
+        myGameArea.start();
+    }
+
+    var myGameArea = {
+        canvas: document.getElementById("canvas"),
+
+        start: function () {
+            this.canvas.width = 800;
+            this.canvas.height = 480;
+            this.context = this.canvas.getContext("2d");
+            //document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+
+            this.frameNo = 0;
+            this.interval = setInterval(updateGameArea, 20);
+
+            window.addEventListener('keydown', function (e) {
+                myGameArea.key = e.keyCode;
+            })
+            window.addEventListener('keyup', function (e) {
+                myGameArea.key = false;
+            })
+
+            for (var k=0;k<10;k++){
+                var tmpx= Math.floor(Math.random() * 800) + 1;
+                var tmpy= Math.floor(Math.random() * 480) + 1;
+                var tmpdirection= Math.floor(Math.random() * 4) + 1;
+                enemy.push(new enemyComponent("red", tmpx, tmpy, tmpdirection));
+            }
+
+            myPlay = new playComponent(myGameArea.canvas.width / 2, myGameArea.canvas.height / 2);
+        },
+
+        stop: function () {
+            clearInterval(this.interval);
+        },
+
+        clear: function () {
+            this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+    }
+
+    function updateGameArea() {
+        myGameArea.clear();
+
+        //moving bullet
+        for (var i = 0; i < bullets.length; i++) {
+            bullets[i].move();
+        }
+        //moving enemy    
+        var e = 0;
+        while (e < enemy.length) {
+            enemy[e].move();
+            var enemyIsDied = false;
+            for (var i = 0; i < bullets.length; i++) {
+                if (enemy[e].crashWithBullet(bullets[i])) {
+                    enemyIsDied = true;
+                    break;
+                }
+            }
+            if (enemyIsDied) {
+                if (e > -1) {
+                    enemy.splice(e, 1);
+                }
+            } else
+                e++;
+        }
+        //control play
+        updatePlayEvent();
+        //check win 
+        if (enemy.length == 0) {           
+            drawText(true);
+            myGameArea.stop();
+        }
+        //check play crash
+        for (var i = 0; i < enemy.length; i++) {
+            if (myPlay.crashWithEnemy(enemy[i])) {                
+                drawText(false);
+                myGameArea.stop();
+            }
+        }
+    }
+
+    function updatePlayEvent() {
+        myPlay.speedX = 0;
+        myPlay.speedY = 0;
+
+        if (myGameArea.key && myGameArea.key == 37) { myPlay.speedX = -1; myPlay.direction = 2; }
+        if (myGameArea.key && myGameArea.key == 39) { myPlay.speedX = 1; myPlay.direction = 1; }
+        if (myGameArea.key && myGameArea.key == 38) { myPlay.speedY = -1; myPlay.direction = 3; }
+        if (myGameArea.key && myGameArea.key == 40) { myPlay.speedY = 1; myPlay.direction = 4; }
+        if (myGameArea.key && myGameArea.key == 83) {
+            if (bullets.length == 0)
+                bullets = [new bulletComponent(myPlay.x + 15, myPlay.y + 10, myPlay.direction)];
+            else
+                bullets[bullets.length] = new bulletComponent(myPlay.x + 15, myPlay.y + 10, myPlay.direction);
+
+        }
+        myPlay.move();
+    }
+
+    function drawText(result) {
+        ctx = myGameArea.context;
+        ctx.save();
+        ctx.rotate(this.angle);
+        ctx.font = "30px Arial";
+        if (result)
+            ctx.fillText("YOU WIN, CONGRATS !", 200, 200);
+        else
+            ctx.fillText("GAME OVER !", 200, 200);
+    }
+
+</script>
+</html>
